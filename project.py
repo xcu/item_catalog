@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, redirect,jsonify, url_for,\
 from flask.ext.session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from fullstack_nanodegree.item_catalog.database_setup import Base, Category, Item
+from database_setup import Base, Category, Item
 import random
 import string
 from oauth2client.client import flow_from_clientsecrets
@@ -64,9 +64,25 @@ def login_required(func):
     def inner(*args, **kwargs):
         if login_session.get('logged_in'):
             return func(*args, **kwargs)
-        else:
-            return redirect(url_for('show_login'))
+        return redirect(url_for('show_login'))
     return inner
+
+
+def csrf_protected(func):
+    @wraps(func)
+    def inner(*args, **kwargs):
+        csrf_token = request.form.get('token', '')
+        if csrf_token == login_session.get('state') and bool(csrf_token):
+            return func(*args, **kwargs)
+        # csrf detected
+        response = make_response(
+            json.dumps('Your request could not be processed'),
+            401
+        )
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    return inner
+
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
@@ -183,7 +199,8 @@ def gdisconnect():
         return response
 
 
-@app.route('/category/', methods=['POST'])
+@app.route('/category', methods=['POST'])
+@csrf_protected
 @login_required
 def add_category():
     _validate_new_category(request.form)
@@ -212,8 +229,9 @@ def get_category(category_id):
     )
 
 
-@login_required
 @app.route('/category/<int:category_id>', methods=['DELETE'])
+@csrf_protected
+@login_required
 def delete_category(category_id):
     category_obj = session.query(Category).filter_by(id=category_id).one()
     session.delete(category_obj)
@@ -227,8 +245,9 @@ def _delete_all_category_items(category_id):
         _do_delete_item(item.id)
 
 
+@app.route('/item', methods=['POST'])
+@csrf_protected
 @login_required
-@app.route('/item/', methods=['POST'])
 def add_item():
     _validate_new_item(request.form)
     category_id = session.query(Category).filter_by(
@@ -248,6 +267,7 @@ def add_item():
 
 
 @app.route('/item/<int:item_id>', methods=['GET'])
+@csrf_protected
 def get_item(item_id):
     return render_template('item.html',
                            item_id=item_id,
@@ -256,8 +276,9 @@ def get_item(item_id):
     )
 
 
-@login_required
 @app.route('/item/<int:item_id>', methods=['PUT'])
+@csrf_protected
+@login_required
 def edit_item(item_id):
     item_obj = session.query(Item).filter_by(id=item_id).one()
     if request.form.get('name'):
@@ -271,8 +292,9 @@ def edit_item(item_id):
                    item_desc=item_obj.description)
 
 
-@login_required
 @app.route('/item/<int:item_id>', methods=['DELETE'])
+@csrf_protected
+@login_required
 def delete_item(item_id):
     _do_delete_item(item_id)
     return jsonify(redirect=url_for('main_page'))
