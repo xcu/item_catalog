@@ -1,0 +1,14 @@
+<div class='col-md-12 categories'>
+    <h3><span>All categories</span>
+    {% if session.get('logged_in') %}
+        <button type="button" class="btn btn-default btn-xs add">
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+        </button>
+    {% endif %}
+    </h3>
+    <div class="categoryList">
+    {% for category in all_categories %}
+        <div class='col-md-3 col-md-offset-1 well oneCategory'><a href="{{url_for('get_category', category_id=category.id)}}">{{category.name}}</a></div>
+    {% endfor %}
+    </div>
+</div>

@@ -21,53 +21,61 @@
         </div>
     </div>
 
-    <div class='col-md-10 well well-sm'>
-        <div class='col-md-4'>
-            <h3>All categories</h3>
-            <ul class='list-unstyled'>
-                {% for category in all_categories %}
-                    <li><a href="{{url_for('get_category', category_id=category.id)}}">{{category.name}}</a></li>
-                {% endfor %}
-            </ul>
-        </div>
-        <div class='col-md-6 categoryItems' categoryId="{{category.id}}">
+    <div class='col-md-12'>
+        {% include "all_categories.html" %}
+        <div class='col-md-12 categoryItems' categoryId="{{category.id}}">
             <h3>
             {% if session.get('logged_in') %}
                 <button type="button" class="btn btn-default btn-xs remove">
                     <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
                 </button>
             {% endif %}
-                <span>{{category.name}} ({{items|length}} items)</span>
+                <span id="numberOfItems">{{category.name}} ({{items|length}} items)</span>
             {% if session.get('logged_in') %}
                 <button type="button" class="btn btn-default btn-xs add">
                     <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
                 </button>
             {% endif %}
             </h3>
-            <ul class='list-unstyled itemList'>
+            <div class='itemList'>
                 {% for item in items %}
-                    <li><a href="{{url_for('get_item', item_id=item.id)}}">{{item.name}}</a></li>
+                    {% include "one_item_thumb.html" %}
                 {% endfor %}
-            </ul>
+            </div>
         </div>
     </div>
 
-    <div id="dialog-form-add" title="Create item">
+    <div id="dialog-form-addItem" title="Create item">
       <p class="validateTips">All form fields are required.</p>
       <form action="{{ url_for('add_item') }}">
           <label for="item_name">Name</label>
           <input type="text" name="name" id="item_name" placeholder="Item name" class="text ui-widget-content ui-corner-all form-control">
+          <label for="item_url">URL</label>
+          <input type="text" name="url" id="item_url" placeholder="Item URL" class="text ui-widget-content ui-corner-all form-control">
           <label for="item_description">Description</label>
           <textarea rows="5" cols="50" name="description" id="item_description" placeholder="Item description" class="text ui-widget-content ui-corner-all form-control"></textarea>
           <input type="hidden" name="category" value="{{category.id}}">
+          <input type="hidden" name="token" value="{{session['state']}}">
           <!-- Allow form submission with keyboard without duplicating the dialog button -->
           <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
 
       </form>
     </div>
 
-    <div id="dialog-confirm" title="Remove category?" action="{{ url_for('delete_category', category_id=category.id) }}">
+    <div id="dialog-form-addCategory" title="Create category">
+      <p class="validateTips">All form fields are required.</p>
+      <form action="{{ url_for('add_category') }}">
+          <label for="cat_name">Name</label>
+          <input type="text" name="name" id="cat_name" placeholder="Category name" class="text ui-widget-content ui-corner-all form-control">
+          <input type="hidden" name="token" value="{{session['state']}}">
+          <!-- Allow form submission with keyboard without duplicating the dialog button -->
+          <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+      </form>
+    </div>
+
+    <div id="dialog-confirm" title="Remove category?" class="removeDialog" action="{{ url_for('delete_category', category_id=category.id) }}">
       <p><span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>Are you sure you want to remove this category?</p>
+      <p hidden class="token">{{session['state']}}</p>
     </div>
 
 </div>

@@ -1,3 +1,26 @@
 .ajaxForm {
     display: none;
 }
+
+.oneCategory {
+    text-align: center;
+}
+
+.oneCategory:hover,
+.oneItemThumbnail:hover {
+    background-color: #F0FCFF;
+}
+
+.oneItemThumbnail {
+    padding-bottom: 1%;
+}
+
+.centeredHeader {
+    text-align: center;
+    padding-bottom: 1%;
+}
+
+.userLogin {
+    background-color: #EBF5FF;
+    margin-top: 1%;
+}

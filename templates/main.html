@@ -21,39 +21,25 @@
         </div>
     </div>
 
-    <div class='col-md-10 well well-sm'>
-        <div class='col-md-4 categories'>
-            <h3><span>All categories</span>
-            {% if session.get('logged_in') %}
-                <button type="button" class="btn btn-default btn-xs add">
-                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-                </button>
-            {% endif %}
-            </h3>
-            <ul class='list-unstyled categoryList'>
-                {% for category in all_categories %}
-                    <li><a href="{{url_for('get_category', category_id=category.id)}}">{{category.name}}</a></li>
-                {% endfor %}
-            </ul>
-        </div>
-        <div class='col-md-6'>
-            <h3>Last added items</h3>
-            <ul class='list-unstyled itemList'>
-                {% for (item, category) in last_items %}
-                    <li><a href="{{url_for('get_item', item_id=item.id)}}">{{item.name}}</a> <a href="{{url_for('get_category', category_id=category.id)}}">({{category.name}})</a></li>
-                {% endfor %}
-            </ul>
+    {% include "login_info.html" %}
+
+    <div class='col-md-12'>
+        {% include "all_categories.html" %}
+        <h3>Last added items</h3>
+        <div class='itemList'>
+            {% for (item, category) in last_items %}
+                {% include "one_item_thumb.html" %}
+            {% endfor %}
         </div>
     </div>
 
 
-    <div id="dialog-form-add" title="Create category">
+    <div id="dialog-form-addCategory" title="Create category">
       <p class="validateTips">All form fields are required.</p>
       <form action="{{ url_for('add_category') }}">
           <label for="cat_name">Name</label>
           <input type="text" name="name" id="cat_name" placeholder="Category name" class="text ui-widget-content ui-corner-all form-control">
-          <label for="cat_description">Description</label>
-          <textarea rows="5" cols="50" name="description" id="cat_description" placeholder="Category description" class="text ui-widget-content ui-corner-all form-control"></textarea>
+          <input type="hidden" name="token" value="{{session['state']}}">
           <!-- Allow form submission with keyboard without duplicating the dialog button -->
           <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
 

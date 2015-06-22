@@ -1,196 +1,100 @@
-$(document).ready(function() {
-    $('.categories').on('click', 'button.add', function() {
-        dialogAdd.dialog( "open" );
-    });
 
-    $('.categories').on('click', 'button.remove', function() {
-        dialogDelete.dialog( "open" );
-    });
-
-    $('.categoryItems').on('click', 'button.add', function() {
-        dialogAdd.dialog( "open" );
-    });
-
-    $('.categoryItems').on('click', 'button.remove', function() {
-        dialogDelete.dialog( "open" );
-    });
-
-    $('.item').on('click', 'button.edit', function() {
-        dialogEdit.dialog( "open" );
-    });
-
-    $('.item').on('click', 'button.delete', function() {
-        dialogDelete.dialog( "open" );
-    });
-    var dialogAdd, dialogEdit, dialogDelete, addForm, editForm;
-    var name = $("#cat_name"),
-        description = $("#cat_description"),
-        allFields = $([]).add(name).add(description),
-        tips = $(".validateTips");
-
-    function validate(){
-        return true;
+// class to validate forms. It checks that selected fields are longer than 3 chars
+function Validator(fields) {
+    var validator = this;
+    this.fields = fields;
+    this.allFields = function(){
+        var toRet = $([]);
+        for (var k in this.fields) {
+            toRet.add(this.fields[k]);
+        }
+        return toRet;
+    };
+    this.tips = $(".validateTips");
+    this.validate = function(){
         var valid = true;
-        allFields.removeClass( "ui-state-error" );
-        valid = valid && checkLength( name, "name", 3);
-        valid = valid && checkLength( description, "description", 5);
+        this.allFields().removeClass("ui-state-error");
+        for (var k in this.fields){
+            var v = this.fields[k];
+            valid = valid && this.checkLength(v, k, 3);
+        }
         return valid;
+    };
+    this.addError = function(field, message){
+        field.addClass("ui-state-error");
+        this.updateTips(message);
+    };
+    this.resetErrors = function(){
+        for (var k in this.fields) {
+            this.fields[k].removeClass("ui-state-error");
+        }
+        this.updateTips("");
     }
-
-    function updateTips( t ) {
-      tips
-        .text( t )
-        .addClass( "ui-state-highlight" );
-      setTimeout(function() {
-        tips.removeClass( "ui-state-highlight", 1500 );
-      }, 500 );
-    }
-
-    function checkLength(o, n, min){
-      if (o.val().length < min ) {
-        o.addClass( "ui-state-error" );
-        updateTips( "Length of " + n + " must be between " +
-          min + "." );
-        return false;
-      } else {
-        return true;
-      }
-    }
-
-    function checkRegexp( o, regexp, n ) {
-      if ( !( regexp.test( o.val() ) ) ) {
-        o.addClass( "ui-state-error" );
-        updateTips( n );
-        return false;
-      } else {
-        return true;
-      }
-    }
-
-    function addItem() {
-        event.preventDefault();
-        if (!validate()){
+    this.updateTips = function(t) {
+        this.tips.text(t).addClass("ui-state-highlight");
+        setTimeout(function() {
+            validator.tips.removeClass("ui-state-highlight", 1500);
+        }, 500 );
+    };
+    this.checkLength = function(o, n, min){
+        if (o.val() == "") return true; // has not changed
+        if (o.val().length < min) {
+            this.addError(o, "Length of " + n + " must be at least " + min + ".");
             return false;
         }
-        $.ajax(addForm.attr('action'), {
-            type: 'POST',
-            //contentType: "application/json; charset=utf-8",
-            dataType:'json',
-            data: addForm.serialize(),
-            success: function(result) {
-                if (result.type_added == 'category'){
-                    afterAddCategory(result.name, result.href);
-                }
-                else if (result.type_added == 'item'){
-                    afterAddItem(result.name, result.href);
-                }
-            },
-            error: function(result) {
-                console.log(result);
-            },
-            complete: function(result) {
-                dialogAdd.dialog( "close" );
-                // undo button highlight
-            },
-        });
-      return true;
-    }
+        return true;
+    };
+};
 
-    function afterAddCategory(categoryName, categoryURL){
-        var newCategory = '<li><a href="' +
-                            categoryURL +
-                            '">' +
-                            categoryName +
-                            '</a></li>';
-        $('.categoryList').append($(newCategory));
-    }
-
-    function afterAddItem(itemName, itemURL){
-        var newItem = '<li><a href="' +
-                            itemURL +
-                            '">' +
-                            itemName +
-                            '</a></li>';
-        $('.itemList').append($(newItem));
-    }
-
-    function editItem() {
+// base class for dialogs and their associated forms
+function DialogWithField(validator, dialog, afterSuccessFunction, requestType) {
+    var dialogWithField = this;
+    this.dialog = dialog;
+    this.form = this.dialog.find("form");
+    this.validator = validator;
+    this.afterSuccessFunction = afterSuccessFunction;
+    this.requestType = requestType;
+    this.onsubmit = function() {
         event.preventDefault();
-        $.ajax(editForm.attr('action'), {
-            type: 'PUT',
-            //contentType: "application/json; charset=utf-8",
+        if (!this.validator.validate()){
+            return false;
+        }
+        $.ajax(this.form.attr('action'), {
+            type: this.requestType,
             dataType:'json',
-            data: editForm.serialize(),
+            data: this.form.serialize(),
             success: function(result) {
-                itemDiv = $('.item')
-                itemDiv.find('.itemName').text(result['item_name'])
-                itemDiv.find('.itemDescription').text(result['item_desc'])
-                console.log(result);
+                dialogWithField.afterSuccessFunction(result);
+                dialogWithField.dialog.dialog("close");
             },
             error: function(result) {
-                console.log(result);
-            },
-            complete: function(result) {
-                dialogEdit.dialog( "close" );
-                // undo button highlight
+                field = dialogWithField.validator.fields['name'];
+                dialogWithField.validator.addError(field, result.responseJSON);
             },
         });
       return true;
     }
+}
 
+$(document).ready(function() {
+    // delete items doesn't really match in the base class :(
     function deleteItem() {
         event.preventDefault();
+        data = {"token": $(".removeDialog").find(".token").text()}
         $.ajax($( "#dialog-confirm" ).attr('action'), {
             type: 'DELETE',
             dataType:'json',
+            data: data,
             success: function(result) {
                 console.log(result);
                 window.location.href = result.redirect;
             },
-            error: function(result) {
+            error: function(result, err) {
                 console.log(result);
-            },
-            complete: function(result) {
-                dialogDelete.dialog("close");
-                // undo button highlight
             },
         });
     }
-
-    dialogAdd = $( "#dialog-form-add" ).dialog({
-        autoOpen: false,
-        height: 390,
-        width: 350,
-        modal: true,
-        buttons: {
-          "Add": addItem,
-          Cancel: function() {
-            dialogAdd.dialog("close");
-          }
-        },
-        close: function() {
-          addForm[0].reset();
-          allFields.removeClass( "ui-state-error" );
-        }
-      });
-
-    dialogEdit = $( "#dialog-form" ).dialog({
-      autoOpen: false,
-      height: 350,
-      width: 350,
-      modal: true,
-      buttons: {
-        "Submit": editItem,
-        Cancel: function() {
-          dialogEdit.dialog( "close" );
-        }
-      },
-      close: function() {
-        editForm[0].reset();
-      }
-    });
-
-    dialogDelete = $( "#dialog-confirm" ).dialog({
+    var dialogDelete = $( "#dialog-confirm" ).dialog({
         autoOpen: false,
         resizable: false,
         height:170,
@@ -203,40 +107,112 @@ $(document).ready(function() {
         }
     });
 
-    editForm = dialogEdit.find( "form" );
-    addForm = dialogAdd.find( "form" );
+    // item related
+    var itemValidator = new Validator({name: $("#item_name"), description: $("#item_description")});
+    var addItemDialog = $( "#dialog-form-addItem" ).dialog({
+        autoOpen: false,
+        height: 440,
+        width: 350,
+        modal: true,
+        buttons: {
+            "Add": function() { addItemHandler.onsubmit(); },
+            Cancel: function() { addItemHandler.dialog.dialog("close"); },
+        },
+        close: function() {
+            addItemHandler.form[0].reset();
+            addCategoryHandler.validator.resetErrors();
+        }
+    });
+    function afterAddItem(result){
+        var itemName = result.name,
+            itemURL = result.href,
+            itemImage = result.image,
+            categoryName = result.category_name,
+            categoryURL = result.category_url,
+            newItem = '<div class="col-md-6 text-center oneItemThumbnail">' +
+                      '<a href="' + itemURL + '">' + itemName + '</a>' +
+                      '<a href="' + categoryURL + '"> (' + categoryName + ')</a>' +
+                      '<img class="img-thumbnail" src="' + itemImage + '" alt="' + itemName + '"></div>';
+        $('.itemList').append($(newItem));
+        var numberOfItems = $("#numberOfItems").text();
+        var regex = new RegExp("[0-9]+");
+        var match = regex.exec(numberOfItems);
+        $("#numberOfItems").text(numberOfItems.replace(match[0], parseInt(match[0]) + 1));
+    }
+    var addItemHandler = new DialogWithField(
+        itemValidator,
+        addItemDialog,
+        afterAddItem,
+        'POST');
+
+    var editItemDialog = $( "#dialog-form-editItem" ).dialog({
+        autoOpen: false,
+        height: 440,
+        width: 350,
+        modal: true,
+        buttons: {
+            "Submit": function() { editItemHandler.onsubmit(); },
+             Cancel: function() { editItemHandler.dialog.dialog("close"); },
+        },
+        close: function() {
+            editItemHandler.form[0].reset();
+        }
+    });
+    function afterEditItem(result){
+        itemDiv = $('.item');
+        itemDiv.find('.itemName').text(result['item_name']);
+        itemDiv.find('.itemDescription').text(result['item_desc']);
+        itemDiv.find('.itemImage').find('img').attr('src', result['item_image']);
+        console.log(result);
+    }
+    var editItemHandler = new DialogWithField(itemValidator, editItemDialog, afterEditItem, 'PUT');
+
+    // category related
+    var addCategoryDialog = $("#dialog-form-addCategory").dialog({
+        autoOpen: false,
+        height: 240,
+        width: 350,
+        modal: true,
+        buttons: {
+            "Add": function() { addCategoryHandler.onsubmit(); },
+            Cancel: function() { addCategoryHandler.dialog.dialog("close"); },
+        },
+        close: function() {
+            addCategoryHandler.form[0].reset();
+            addCategoryHandler.validator.resetErrors();
+        }
+    });
+    function afterAddCategory(result){
+        var categoryName = result.name,
+            categoryURL = result.href,
+            newCategory = '<div class="col-md-3 col-md-offset-1 well oneCategory"><a href="'
+        + categoryURL + '">' + categoryName + '</a></div>';
+        $('.categoryList').append($(newCategory));
+    }
+    var categoryValidator = new Validator({name: $("#cat_name")});
+    var addCategoryHandler = new DialogWithField(categoryValidator, addCategoryDialog, afterAddCategory, 'POST');
+
+    $('.categories').on('click', 'button.add', function() {
+        addCategoryHandler.dialog.dialog( "open" );
+    });
+
+    $('.categories').on('click', 'button.remove', function() {
+        dialogDelete.dialog( "open" );
+    });
+
+    $('.categoryItems').on('click', 'button.add', function() {
+        addItemHandler.dialog.dialog( "open" );
+    });
+
+    $('.categoryItems').on('click', 'button.remove', function() {
+        dialogDelete.dialog( "open" );
+    });
+
+    $('.item').on('click', 'button.edit', function() {
+        editItemHandler.dialog.dialog( "open" );
+    });
+
+    $('.item').on('click', 'button.delete', function() {
+        dialogDelete.dialog( "open" );
+    });
 });
-
-//('.confirmation').on('click', 'button', function(){
-//    $.ajax('confirmation.html', {
-//        success: function(response) {},
-//        error: function(request, errorType, errorMessage) {},
-//        timeout: 3000,
-//        ￼￼￼￼beforeSend: function() {
-//          $('.confirmation').addClass('is-loading');
-//        },
-//        complete: function() {
-//        ￼￼  $('.confirmation').removeClass('is-loading');
-//        }
-//    ￼});
-//});
-
-//var confirmation = {
-//    init: function() {
-//        $('.confirmation').on('click', 'button', this.loadConfirmation);
-//        $('.confirmation').on('click', '.view-boarding-pass', this.showBoardingPass);
-//    },
-//    loadConfirmation: function() {
-//        $.ajax('confirmation.html', {});
-//    },
-//    showBoardingPass: function(event) {}
-//};
-//
-//$(document).ready(function() {
-//  confirmation.init();
-//});
-// $('button').on('click', function() {
-// var price = $('<p>From $399.99</p>');
-// $(this).after(price);
-// $(this).closest('.vacation').append(price);
-//$(this).remove();

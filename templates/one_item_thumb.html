@@ -1,0 +1,5 @@
+<div class="col-md-6 text-center oneItemThumbnail">
+    <a href="{{url_for('get_item', item_id=item.id)}}">{{item.name}}</a>
+    <a href="{{url_for('get_category', category_id=category.id)}}">({{category.name}})</a>
+    <img class="img-thumbnail" src="{{item.image}}" alt="{{item.name}}">
+</div>
