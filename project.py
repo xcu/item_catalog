@@ -249,9 +249,9 @@ def add_item():
     category = session.query(Category).filter_by(
         id=request.form['category']
     ).one()
-    new_item = Item(bleach.clean(name=request.form['name']),
-                    bleach.clean(description=request.form['description']),
-                    bleach.clean(image=request.form.get('url', '')),
+    new_item = Item(name=bleach.clean(request.form['name']),
+                    description=bleach.clean(request.form['description']),
+                    image=bleach.clean(request.form.get('url', '')),
                     category_id=category.id
                     )
     session.add(new_item)
