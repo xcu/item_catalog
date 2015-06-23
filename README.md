@@ -3,6 +3,7 @@ Third project for Udacity Full Stack dev Nanodegree
 
 # How to run the application
 Apart from cloning the repository you will need to provide a file named 'client_secrets.json' with your app details. You can download the one for your app by entering in https://console.developers.google.com and Select Download JSON in the Credentials submenu.
+
 The code has been tested with the following versions:
 - Flask (0.10.1)
 - Flask-OAuth2-Login (0.0.9)
@@ -14,6 +15,7 @@ The code has been tested with the following versions:
 - requests (2.2.1)
 - requests-oauthlib (0.4.2)
 - bleach (1.4.1)
+
 Most of them are included in the vagrant VM provided for the course. I only had to install Flask-Session (and only because I wanted to try other types of sessions, the default ones would serve just the same).
 Once the repo is cloned and the dependencies are installed you just need to run python project.py
 After that open your browser and check http://localhost:5000
